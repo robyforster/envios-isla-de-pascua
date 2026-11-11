@@ -551,8 +551,9 @@
   // (www → listado, listado → articulo…) y los envíos del buscador. Si la navegación la
   // hace la página (location.assign) en vez del toque, normalmente se queda en Safari.
   function isIOS() {
-    const ua = navigator.userAgent || "";
-    return /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
+    const nav = typeof navigator !== "undefined" ? navigator : {};
+    const ua = nav.userAgent || "";
+    return /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && nav.maxTouchPoints > 1);
   }
 
   function searchUrl(q) {
