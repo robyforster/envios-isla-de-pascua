@@ -18,6 +18,7 @@
   // ---------- estado ----------
   let hideNo = false;
   let hideUnknown = false;
+  let collapsed = null; // null = según el ancho de pantalla (plegado en teléfonos)
   // Plan meli+ del usuario. Reglas de envío de mercadolibre.cl/melimas (nov 2026):
   // - Carritos desde $9.990 en productos con etiqueta meli+: envío gratis; si el
   //   envío cuesta más de $8.000, se paga la diferencia.
@@ -489,8 +490,11 @@
       panel = document.createElement("div");
       panel.id = "ipc-panel";
       panel.innerHTML = `
-        <div class="ipc-title">🗿 Isla de Pascua</div>
-        <div class="ipc-stats"></div>
+        <button type="button" class="ipc-head" aria-expanded="true" title="Mostrar u ocultar opciones">
+          <span class="ipc-title"><span aria-hidden="true">🗿</span><span class="ipc-name"> Isla de Pascua</span></span>
+          <span class="ipc-stats"></span>
+          <span class="ipc-chevron" aria-hidden="true">▾</span>
+        </button>
         <label><input type="checkbox" data-k="no"> Ocultar los que no llegan</label>
         <label><input type="checkbox" data-k="unknown"> Ocultar sin dato</label>
         <label class="ipc-plan">Mi plan:
@@ -502,6 +506,19 @@
           </select>
         </label>`;
       document.body.appendChild(panel);
+      // Plegado: en pantallas angostas (iPhone) por defecto, para no tapar la página
+      // ni los avisos de Mercado Libre. Se recuerda lo que elija el usuario.
+      const setCollapsed = (c) => {
+        panel.classList.toggle("ipc-collapsed", c);
+        panel.querySelector(".ipc-head").setAttribute("aria-expanded", String(!c));
+        panel.querySelector(".ipc-chevron").textContent = c ? "▸" : "▾";
+      };
+      setCollapsed(collapsed === null ? window.innerWidth < 700 : collapsed);
+      panel.querySelector(".ipc-head").addEventListener("click", () => {
+        collapsed = !panel.classList.contains("ipc-collapsed");
+        setCollapsed(collapsed);
+        try { store?.set({ ipcPrefs: { hideNo, hideUnknown, plan, collapsed } }); } catch (_) {}
+      });
       panel.querySelectorAll("input, select").forEach((inp) => {
         const k = inp.dataset.k;
         if (k === "plan") { const o = inp.querySelector(`option[value="${plan}"]`); if (o) o.selected = true; }
@@ -511,7 +528,7 @@
           else if (k === "unknown") hideUnknown = inp.checked;
           else plan = inp.value === "auto" || PLANS[inp.value] ? inp.value : "auto";
           showDetected();
-          try { store?.set({ ipcPrefs: { hideNo, hideUnknown, plan } }); } catch (_) {}
+          try { store?.set({ ipcPrefs: { hideNo, hideUnknown, plan, collapsed } }); } catch (_) {}
           document.querySelectorAll(".ipc-card").forEach((c) => {
             updateVisibility(c);
             if (k === "plan" && c._ipcR) {
@@ -608,6 +625,7 @@
         hideNo = !!p.hideNo;
         hideUnknown = !!p.hideUnknown;
         plan = p.plan === "auto" || PLANS[p.plan] ? p.plan : "auto";
+        collapsed = typeof p.collapsed === "boolean" ? p.collapsed : null;
       }
       const mi = (await store?.get("ipcMeli"))?.ipcMeli;
       if (mi && typeof mi.member === "boolean") meliInfo = mi;

@@ -34,7 +34,7 @@ Funciona en **Microsoft Edge**, **Chrome**, **Safari en Mac** y **Safari en iPho
 - ❌ **No envía a Isla de Pascua**, o no hay stock.
 - ⚪ **Sin dato**: por ejemplo, fichas de catálogo con varias opciones de compra.
 
-**Un panel 🗿** abajo a la derecha muestra cuántos productos llegan y tiene:
+**Un panel 🗿** abajo a la derecha muestra cuántos productos llegan. Tócalo para plegarlo o desplegarlo; en el teléfono parte plegado. Desplegado tiene:
 
 - **Ocultar los que no llegan** y **Ocultar sin dato**.
 - **Mi plan:** *Automático* (recomendado), *Sin meli+*, *meli+ Esencial* o *meli+ Total*. En automático, la extensión detecta tu plan sola si tienes la sesión iniciada en Mercado Libre.
@@ -100,7 +100,8 @@ Ejecuta el proyecto en Xcode y activa la extensión en Safari → Ajustes → Ex
 
 | Versión | Novedades | Edge | iPhone (GitHub) |
 |---|---|---|---|
-| **1.1.3** | En iPhone, la búsqueda y los enlaces entre partes de Mercado Libre se abren en Safari en vez de la app. | Lista para subir | ✅ Publicada |
+| **1.1.4** | Panel plegable (plegado por defecto en el teléfono) y por debajo de los avisos de Mercado Libre, para poder cerrarlos. | Lista para subir | ✅ Publicada |
+| **1.1.3** | En iPhone, la búsqueda y los enlaces entre partes de Mercado Libre se abren en Safari en vez de la app. | Lista para subir | ✅ |
 | **1.1.2** | Detección de envío por texto (sitio móvil). Detecta tu plan meli+ desde tu página de suscripción. | Lista para subir | ✅ |
 | **1.1.1** | Costo de envío con meli+. Revisa la ficha en los casos dudosos. Las etiquetas ya no se montan sobre otras tarjetas. Ignora los enlaces de categorías. | En revisión | — |
 | **1.1.0** | Primera versión en la tienda de Edge (visibilidad oculta). | ✅ Publicada | — |

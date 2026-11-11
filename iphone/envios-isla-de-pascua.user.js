@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Envíos a Isla de Pascua
 // @description  Marca que productos de Mercado Libre Chile llegan a Isla de Pascua y oculta los que no. No oficial.
-// @version      1.1.3
+// @version      1.1.4
 // @namespace    https://github.com/robyforster/envios-isla-de-pascua
 // @homepageURL  https://github.com/robyforster/envios-isla-de-pascua
 // @updateURL    https://raw.githubusercontent.com/robyforster/envios-isla-de-pascua/main/iphone/envios-isla-de-pascua.user.js
@@ -15,7 +15,7 @@
 
 (() => {
   // Estilos de la extensión
-  const css = ".ipc-badge {\n  font: 600 12px/1.35 -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif;\n  margin: 6px 8px 8px;\n  padding: 5px 8px;\n  border-radius: 6px;\n  background: #eef2f5;\n  color: #333;\n}\n.ipc-badge[data-status=\"ok\"] { background: #e3f6e8; color: #0b6b2b; }\n.ipc-badge[data-status=\"no\"] { background: #fde8e8; color: #9b1c1c; }\n.ipc-badge[data-status=\"unknown\"] { background: #f1f1f1; color: #666; }\n\n.ipc-no { opacity: 0.45; }\n.ipc-hidden { display: none !important; }\n\n.ipc-pdp {\n  font: 600 14px/1.4 -apple-system, BlinkMacSystemFont, sans-serif;\n  padding: 8px 12px;\n  margin: 0 0 12px;\n  border-radius: 8px;\n  background: #eef2f5;\n}\n.ipc-pdp[data-status=\"ok\"] { background: #e3f6e8; color: #0b6b2b; }\n.ipc-pdp[data-status=\"no\"] { background: #fde8e8; color: #9b1c1c; }\n\n#ipc-panel {\n  position: fixed;\n  right: 16px;\n  bottom: 16px;\n  z-index: 2147483647;\n  background: #fff;\n  color: #222;\n  border: 1px solid #ddd;\n  border-radius: 10px;\n  box-shadow: 0 6px 24px rgba(0,0,0,.18);\n  padding: 10px 14px;\n  font: 13px/1.5 -apple-system, BlinkMacSystemFont, sans-serif;\n  min-width: 210px;\n}\n#ipc-panel .ipc-title { font-weight: 700; margin-bottom: 2px; }\n#ipc-panel .ipc-stats { margin-bottom: 6px; color: #444; }\n#ipc-panel label { display: block; cursor: pointer; }\n#ipc-panel input { margin-right: 6px; }\n#ipc-panel .ipc-plan { margin-top: 4px; }\n#ipc-panel select { margin-left: 4px; font: inherit; }\n#ipc-panel .ipc-detected { font-size: 11px; color: #666; }\n\n/* Mercado Libre fija la altura de cada casilla de la grilla (height: 100%).\n   Con la etiqueta, la tarjeta queda más alta y se montaba sobre la fila o el\n   bloque de abajo. Se deja crecer la casilla para que la fila se ajuste. */\n.ui-search-layout__item.ipc-card {\n  height: auto !important;\n  max-height: none !important;\n}\n";
+  const css = ".ipc-badge {\n  font: 600 12px/1.35 -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif;\n  margin: 6px 8px 8px;\n  padding: 5px 8px;\n  border-radius: 6px;\n  background: #eef2f5;\n  color: #333;\n}\n.ipc-badge[data-status=\"ok\"] { background: #e3f6e8; color: #0b6b2b; }\n.ipc-badge[data-status=\"no\"] { background: #fde8e8; color: #9b1c1c; }\n.ipc-badge[data-status=\"unknown\"] { background: #f1f1f1; color: #666; }\n\n.ipc-no { opacity: 0.45; }\n.ipc-hidden { display: none !important; }\n\n.ipc-pdp {\n  font: 600 14px/1.4 -apple-system, BlinkMacSystemFont, sans-serif;\n  padding: 8px 12px;\n  margin: 0 0 12px;\n  border-radius: 8px;\n  background: #eef2f5;\n}\n.ipc-pdp[data-status=\"ok\"] { background: #e3f6e8; color: #0b6b2b; }\n.ipc-pdp[data-status=\"no\"] { background: #fde8e8; color: #9b1c1c; }\n\n#ipc-panel {\n  position: fixed;\n  right: 16px;\n  bottom: 16px;\n  /* Por debajo de las ventanas de Mercado Libre (p. ej. \"Abre la app\"), que deben\n     poder cerrarse; por encima del contenido normal de la página. */\n  z-index: 900;\n  background: #fff;\n  color: #222;\n  border: 1px solid #ddd;\n  border-radius: 10px;\n  box-shadow: 0 6px 24px rgba(0,0,0,.18);\n  padding: 10px 14px;\n  font: 13px/1.5 -apple-system, BlinkMacSystemFont, sans-serif;\n  min-width: 210px;\n}\n#ipc-panel .ipc-head {\n  all: unset;\n  display: flex;\n  align-items: center;\n  gap: 8px;\n  width: 100%;\n  cursor: pointer;\n  margin-bottom: 6px;\n}\n#ipc-panel .ipc-title { font-weight: 700; }\n#ipc-panel .ipc-stats { color: #444; white-space: nowrap; }\n#ipc-panel .ipc-chevron { margin-left: auto; color: #888; }\n#ipc-panel.ipc-collapsed { padding: 6px 12px; min-width: 0; }\n#ipc-panel.ipc-collapsed .ipc-head { margin-bottom: 0; }\n#ipc-panel.ipc-collapsed .ipc-name { display: none; }\n#ipc-panel.ipc-collapsed > :not(.ipc-head) { display: none; }\n#ipc-panel label { display: block; cursor: pointer; }\n#ipc-panel input { margin-right: 6px; }\n#ipc-panel .ipc-plan { margin-top: 4px; }\n#ipc-panel select { margin-left: 4px; font: inherit; }\n#ipc-panel .ipc-detected { font-size: 11px; color: #666; }\n\n/* Mercado Libre fija la altura de cada casilla de la grilla (height: 100%).\n   Con la etiqueta, la tarjeta queda más alta y se montaba sobre la fila o el\n   bloque de abajo. Se deja crecer la casilla para que la fila se ajuste. */\n.ui-search-layout__item.ipc-card {\n  height: auto !important;\n  max-height: none !important;\n}\n";
   const addStyle = () => {
     const s = document.createElement("style");
     s.textContent = css;
@@ -74,6 +74,7 @@
     // ---------- estado ----------
     let hideNo = false;
     let hideUnknown = false;
+    let collapsed = null; // null = según el ancho de pantalla (plegado en teléfonos)
     // Plan meli+ del usuario. Reglas de envío de mercadolibre.cl/melimas (nov 2026):
     // - Carritos desde $9.990 en productos con etiqueta meli+: envío gratis; si el
     //   envío cuesta más de $8.000, se paga la diferencia.
@@ -545,8 +546,11 @@
         panel = document.createElement("div");
         panel.id = "ipc-panel";
         panel.innerHTML = `
-          <div class="ipc-title">🗿 Isla de Pascua</div>
-          <div class="ipc-stats"></div>
+          <button type="button" class="ipc-head" aria-expanded="true" title="Mostrar u ocultar opciones">
+            <span class="ipc-title"><span aria-hidden="true">🗿</span><span class="ipc-name"> Isla de Pascua</span></span>
+            <span class="ipc-stats"></span>
+            <span class="ipc-chevron" aria-hidden="true">▾</span>
+          </button>
           <label><input type="checkbox" data-k="no"> Ocultar los que no llegan</label>
           <label><input type="checkbox" data-k="unknown"> Ocultar sin dato</label>
           <label class="ipc-plan">Mi plan:
@@ -558,6 +562,19 @@
             </select>
           </label>`;
         document.body.appendChild(panel);
+        // Plegado: en pantallas angostas (iPhone) por defecto, para no tapar la página
+        // ni los avisos de Mercado Libre. Se recuerda lo que elija el usuario.
+        const setCollapsed = (c) => {
+          panel.classList.toggle("ipc-collapsed", c);
+          panel.querySelector(".ipc-head").setAttribute("aria-expanded", String(!c));
+          panel.querySelector(".ipc-chevron").textContent = c ? "▸" : "▾";
+        };
+        setCollapsed(collapsed === null ? window.innerWidth < 700 : collapsed);
+        panel.querySelector(".ipc-head").addEventListener("click", () => {
+          collapsed = !panel.classList.contains("ipc-collapsed");
+          setCollapsed(collapsed);
+          try { store?.set({ ipcPrefs: { hideNo, hideUnknown, plan, collapsed } }); } catch (_) {}
+        });
         panel.querySelectorAll("input, select").forEach((inp) => {
           const k = inp.dataset.k;
           if (k === "plan") { const o = inp.querySelector(`option[value="${plan}"]`); if (o) o.selected = true; }
@@ -567,7 +584,7 @@
             else if (k === "unknown") hideUnknown = inp.checked;
             else plan = inp.value === "auto" || PLANS[inp.value] ? inp.value : "auto";
             showDetected();
-            try { store?.set({ ipcPrefs: { hideNo, hideUnknown, plan } }); } catch (_) {}
+            try { store?.set({ ipcPrefs: { hideNo, hideUnknown, plan, collapsed } }); } catch (_) {}
             document.querySelectorAll(".ipc-card").forEach((c) => {
               updateVisibility(c);
               if (k === "plan" && c._ipcR) {
@@ -664,6 +681,7 @@
           hideNo = !!p.hideNo;
           hideUnknown = !!p.hideUnknown;
           plan = p.plan === "auto" || PLANS[p.plan] ? p.plan : "auto";
+          collapsed = typeof p.collapsed === "boolean" ? p.collapsed : null;
         }
         const mi = (await store?.get("ipcMeli"))?.ipcMeli;
         if (mi && typeof mi.member === "boolean") meliInfo = mi;
