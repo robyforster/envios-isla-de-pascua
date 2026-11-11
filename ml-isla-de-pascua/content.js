@@ -546,8 +546,61 @@
     if (d.textContent !== t) d.textContent = t;
   }
 
+  // ---------- iPhone: quedarse en Safari ----------
+  // iOS abre en la app de Mercado Libre los toques en enlaces hacia otro subdominio
+  // (www → listado, listado → articulo…) y los envíos del buscador. Si la navegación la
+  // hace la página (location.assign) en vez del toque, normalmente se queda en Safari.
+  function isIOS() {
+    const ua = navigator.userAgent || "";
+    return /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
+  }
+
+  function searchUrl(q) {
+    const slug = q.trim().toLowerCase().replace(/\s+/g, "-");
+    return "https://listado.mercadolibre.cl/" + encodeURIComponent(slug).replace(/%2D/gi, "-");
+  }
+
+  function keepInSafari() {
+    const ML = /(^|\.)mercadolibre\.cl$/i;
+    const go = (url) => location.assign(url);
+
+    // Enlaces hacia otro subdominio de Mercado Libre
+    document.addEventListener("click", (e) => {
+      if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+      const a = e.target && e.target.closest && e.target.closest("a[href]");
+      if (!a || (a.target && a.target !== "_self")) return;
+      let u;
+      try { u = new URL(a.href, location.href); } catch (_) { return; }
+      if (!/^https?:$/.test(u.protocol) || !ML.test(u.hostname) || u.hostname === location.hostname) return;
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      go(u.href);
+    }, true);
+
+    // Buscador: envío del formulario…
+    const SEARCH_INPUT = "input[name='as_word'], input[type='search'], input[name='q'], input[aria-label*='usca' i], input[placeholder*='usca' i]";
+    document.addEventListener("submit", (e) => {
+      const inp = e.target && e.target.querySelector && e.target.querySelector(SEARCH_INPUT);
+      if (!inp || !inp.value.trim()) return;
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      go(searchUrl(inp.value));
+    }, true);
+
+    // …o tecla "Buscar"/"Ir" del teclado en buscadores que no usan formulario
+    document.addEventListener("keydown", (e) => {
+      if (e.key !== "Enter" || e.isComposing) return;
+      const t = e.target;
+      if (!t || t.tagName !== "INPUT" || !t.matches(SEARCH_INPUT) || !t.value.trim()) return;
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      go(searchUrl(t.value));
+    }, true);
+  }
+
   // ---------- inicio ----------
   async function init() {
+    if (isIOS()) keepInSafari();
     try {
       const p = (await store?.get("ipcPrefs"))?.ipcPrefs;
       if (p) {
