@@ -86,13 +86,19 @@ Más detalles en [`iphone/LEEME.md`](iphone/LEEME.md).
 
 ### Safari en Mac
 
-Requiere Xcode, que es gratis en la App Store:
+Requiere **Xcode**, que es gratis en la App Store.
 
-```bash
-xcrun safari-web-extension-converter ml-isla-de-pascua --macos-only --app-name "Envios Isla de Pascua"
-```
+1. Descarga este repositorio (**Code → Download ZIP**, o `git clone`).
+2. En la Terminal, dentro de la carpeta, ejecuta:
+   ```bash
+   ./build-safari.sh
+   ```
+   El script genera el proyecto de Xcode desde el código, lo compila y abre la app.
+3. En Safari: **Ajustes → Avanzado →** "Mostrar funciones para desarrolladores web"; luego **Ajustes → Desarrollador →** "Permitir extensiones sin firmar"; y **Ajustes → Extensiones →** activa la extensión.
 
-Ejecuta el proyecto en Xcode y activa la extensión en Safari → Ajustes → Extensiones. Si no está firmada, hay que activar **"Permitir extensiones sin firmar"** en Ajustes → Desarrollador cada vez que se abre Safari.
+Para actualizarla, descarga los cambios (`git pull`) y vuelve a ejecutar `./build-safari.sh`.
+
+Como la app no está firmada por Apple, Safari desactiva "Permitir extensiones sin firmar" cada vez que se cierra. Para evitarlo hay que publicarla con una cuenta de desarrollador de Apple.
 
 ---
 
@@ -118,6 +124,7 @@ Ejecuta el proyecto en Xcode y activa la extensión en Safari → Ajustes → Ex
   - `content.css`: estilos.
 - `iphone/envios-isla-de-pascua.user.js`: el userscript para iPhone. **Se genera**; no se edita a mano.
 - `build-userscript.py`: genera el userscript desde `ml-isla-de-pascua/`.
+- `build-safari.sh`: genera el proyecto de Xcode desde `ml-isla-de-pascua/`, lo compila y abre la app de Safari para Mac. El proyecto (`safari-app/`) no se guarda en el repositorio porque se regenera.
 
 ### Publicar una versión nueva
 
@@ -128,7 +135,7 @@ Ejecuta el proyecto en Xcode y activa la extensión en Safari → Ajustes → Ex
    ```
 3. Haz commit y push. Los iPhone la reciben al tocar ☁️↓ en Userscripts.
 4. **Edge:** empaqueta la carpeta en un .zip y súbelo en Partner Center → Packages → Replace.
-5. **Safari en Mac:** copia los archivos al proyecto de Xcode y vuelve a compilar.
+5. **Safari en Mac:** ejecuta `./build-safari.sh`.
 
 ### Notas técnicas
 
