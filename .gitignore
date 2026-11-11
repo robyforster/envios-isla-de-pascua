@@ -1,0 +1,8 @@
+# macOS
+.DS_Store
+
+# Proyecto de Xcode y app compilada de Safari (se generan en cada Mac)
+safari-app/
+
+# Paquetes y notas de la tienda de Edge (no hacen falta en el repositorio)
+tienda-edge/

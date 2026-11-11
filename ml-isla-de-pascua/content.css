@@ -1,0 +1,54 @@
+.ipc-badge {
+  font: 600 12px/1.35 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  margin: 6px 8px 8px;
+  padding: 5px 8px;
+  border-radius: 6px;
+  background: #eef2f5;
+  color: #333;
+}
+.ipc-badge[data-status="ok"] { background: #e3f6e8; color: #0b6b2b; }
+.ipc-badge[data-status="no"] { background: #fde8e8; color: #9b1c1c; }
+.ipc-badge[data-status="unknown"] { background: #f1f1f1; color: #666; }
+
+.ipc-no { opacity: 0.45; }
+.ipc-hidden { display: none !important; }
+
+.ipc-pdp {
+  font: 600 14px/1.4 -apple-system, BlinkMacSystemFont, sans-serif;
+  padding: 8px 12px;
+  margin: 0 0 12px;
+  border-radius: 8px;
+  background: #eef2f5;
+}
+.ipc-pdp[data-status="ok"] { background: #e3f6e8; color: #0b6b2b; }
+.ipc-pdp[data-status="no"] { background: #fde8e8; color: #9b1c1c; }
+
+#ipc-panel {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 2147483647;
+  background: #fff;
+  color: #222;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  box-shadow: 0 6px 24px rgba(0,0,0,.18);
+  padding: 10px 14px;
+  font: 13px/1.5 -apple-system, BlinkMacSystemFont, sans-serif;
+  min-width: 210px;
+}
+#ipc-panel .ipc-title { font-weight: 700; margin-bottom: 2px; }
+#ipc-panel .ipc-stats { margin-bottom: 6px; color: #444; }
+#ipc-panel label { display: block; cursor: pointer; }
+#ipc-panel input { margin-right: 6px; }
+#ipc-panel .ipc-plan { margin-top: 4px; }
+#ipc-panel select { margin-left: 4px; font: inherit; }
+#ipc-panel .ipc-detected { font-size: 11px; color: #666; }
+
+/* Mercado Libre fija la altura de cada casilla de la grilla (height: 100%).
+   Con la etiqueta, la tarjeta queda más alta y se montaba sobre la fila o el
+   bloque de abajo. Se deja crecer la casilla para que la fila se ajuste. */
+.ui-search-layout__item.ipc-card {
+  height: auto !important;
+  max-height: none !important;
+}
