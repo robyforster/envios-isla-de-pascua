@@ -50,7 +50,7 @@ shim = r"""
   addStyle();
 
   const gm = typeof GM !== "undefined" && GM && GM.getValue ? GM : null;
-  const isCacheKey = (k) => /^(ipc|pdp):/.test(k);
+  const isCacheKey = (k) => /^(ipc2?|pdp):/.test(k);
   const parse = (v) => { try { return v == null ? undefined : JSON.parse(v); } catch (_) { return undefined; } };
 
   const browser = {

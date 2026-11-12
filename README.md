@@ -43,6 +43,10 @@ Funciona en **Microsoft Edge**, **Chrome**, **Safari en Mac** y **Safari en iPho
 
 ### Cómo calcula el envío
 
+**Con tu sesión iniciada y tu dirección en Isla de Pascua** (desde la 1.1.5), la extensión pregunta a la **calculadora de envíos de Mercado Libre**, la misma de "Más detalles y formas de entrega" en cada ficha. Así obtiene el costo **exacto para tu cuenta**: con meli+, envíos gratis y la tarifa real de productos grandes. La etiqueta lo dice como **"$X con tu cuenta"** o **"envío gratis con tu cuenta"**. Un ejemplo de por qué hace falta: para una cocina, la cotización pública decía $30.000, pero el checkout cobraba $101.101.
+
+**Sin sesión, o si tu dirección no está en la isla**, usa el método anterior:
+
 1. Consulta la **cotización pública de envíos** de Mercado Libre con la comuna de Isla de Pascua como destino. Así sabe si el producto llega, el tipo de entrega, la fecha y el precio de lista del envío.
 2. Si tienes **meli+** (Esencial y Total tienen las mismas reglas de envío), aplica sus beneficios:
    - **Productos desde $9.990** con etiqueta meli+: meli+ cubre hasta **$8.000** del envío y pagas la diferencia. Ejemplo comprobado: un envío de $27.490 queda en $19.490.
@@ -55,6 +59,7 @@ Los resultados se guardan unas horas para no repetir consultas.
 
 - No recopila, guarda ni envía datos personales, y no tiene analítica.
 - Solo se comunica con **Mercado Libre**: su cotización pública de envíos (`api.mercadolibre.com`) y sus propias páginas (`mercadolibre.cl`), usando tu sesión para ver los mismos precios que verías tú.
+- De la calculadora de envíos solo lee la comuna de destino y las opciones de envío. Tu dirección y tus datos no se guardan ni salen de Mercado Libre.
 
 ---
 
@@ -106,11 +111,12 @@ Como la app no está firmada por Apple, Safari desactiva "Permitir extensiones s
 
 | Versión | Novedades | Edge | iPhone (GitHub) |
 |---|---|---|---|
-| **1.1.4** | Panel plegable (plegado por defecto en el teléfono) y por debajo de los avisos de Mercado Libre, para poder cerrarlos. | Lista para subir | ✅ Publicada |
-| **1.1.3** | En iPhone, la búsqueda y los enlaces entre partes de Mercado Libre se abren en Safari en vez de la app. | Lista para subir | ✅ |
-| **1.1.2** | Detección de envío por texto (sitio móvil). Detecta tu plan meli+ desde tu página de suscripción. | Lista para subir | ✅ |
-| **1.1.1** | Costo de envío con meli+. Revisa la ficha en los casos dudosos. Las etiquetas ya no se montan sobre otras tarjetas. Ignora los enlaces de categorías. | En revisión | — |
-| **1.1.0** | Primera versión en la tienda de Edge (visibilidad oculta). | ✅ Publicada | — |
+| **1.1.5** | Con sesión iniciada, el costo y la fecha salen de la calculadora de envíos de Mercado Libre para tu dirección: es el valor exacto, también en productos grandes. | En revisión (enviada el 11/11/2026) | ✅ Publicada |
+| **1.1.4** | Panel plegable (plegado por defecto en el teléfono) y por debajo de los avisos de Mercado Libre, para poder cerrarlos. | Incluida en 1.1.5 | ✅ |
+| **1.1.3** | En iPhone, la búsqueda y los enlaces entre partes de Mercado Libre se abren en Safari en vez de la app. | Incluida en 1.1.5 | ✅ |
+| **1.1.2** | Detección de envío por texto (sitio móvil). Detecta tu plan meli+ desde tu página de suscripción. | Incluida en 1.1.5 | ✅ |
+| **1.1.1** | Costo de envío con meli+. Revisa la ficha en los casos dudosos. Las etiquetas ya no se montan sobre otras tarjetas. Ignora los enlaces de categorías. | ✅ Publicada | — |
+| **1.1.0** | Primera versión en la tienda de Edge (visibilidad oculta). | Reemplazada por 1.1.1 | — |
 
 ---
 
@@ -139,6 +145,7 @@ Como la app no está firmada por Apple, Safari desactiva "Permitir extensiones s
 
 ### Notas técnicas
 
+- La calculadora (`www.mercadolibre.cl/gz/shipping-calculator?item_id=…`) trae en su HTML `destinationValue` (región_ciudad de la dirección de la cuenta) y `shipping_promises` (tipo, `cost` final, `free_shipping`, fechas). Sin sesión, redirige a elegir una dirección y no trae esos datos. Desde otra parte del sitio se consulta en segundo plano (Chrome, Edge) o con un marco invisible de `www` (`/ayuda#ipc-calc`) que devuelve solo el resultado ya leído (Safari, iPhone).
 - La cotización pública solo entrega el **precio de lista**. Lo que ve cada usuario (meli+, promociones) solo aparece en la ficha y en el checkout.
 - En **Safari**, las consultas en segundo plano de una extensión **no llevan la sesión del usuario**. Por eso, ahí la ficha se revisa en un **marco invisible del mismo sitio** (`#ipc-probe=ID`), y el plan meli+ se lee igual (`/melimas#ipc-meli`).
 - El sitio móvil de Mercado Libre usa otros nombres de clase. Por eso la frase de envío ("Retira/Llega … entre/el/mañana…") se busca por texto.

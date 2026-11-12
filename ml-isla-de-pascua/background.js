@@ -34,7 +34,21 @@ async function meliPlan() {
   return null;
 }
 
+// Calculadora de envíos de la ficha: cotiza con la sesión para la dirección elegida
+// en la cuenta. Se devuelve el HTML a la pestaña, que lo lee (content.js, parseCalc).
+async function calcHtml(id) {
+  const url =
+    `https://www.mercadolibre.cl/gz/shipping-calculator?item_id=${id}&new_version=true&modal=true&informative=true&page_context=vpp&location=true&quantity=1`;
+  const res = await fetch(url, { credentials: "include" });
+  if (!res.ok) return null;
+  return { html: await res.text() };
+}
+
 ext.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
+  if (msg && msg.type === "ipc-calc" && /^MLC\d{6,}$/.test(msg.id || "")) {
+    calcHtml(msg.id).then(sendResponse).catch(() => sendResponse(null));
+    return true;
+  }
   if (msg && msg.type === "ipc-meli") {
     meliPlan().then(sendResponse).catch(() => sendResponse(null));
     return true;

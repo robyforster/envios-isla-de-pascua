@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Envíos a Isla de Pascua
 // @description  Marca que productos de Mercado Libre Chile llegan a Isla de Pascua y oculta los que no. No oficial.
-// @version      1.1.4
+// @version      1.1.5
 // @namespace    https://github.com/robyforster/envios-isla-de-pascua
 // @homepageURL  https://github.com/robyforster/envios-isla-de-pascua
 // @updateURL    https://raw.githubusercontent.com/robyforster/envios-isla-de-pascua/main/iphone/envios-isla-de-pascua.user.js
@@ -24,7 +24,7 @@
   addStyle();
 
   const gm = typeof GM !== "undefined" && GM && GM.getValue ? GM : null;
-  const isCacheKey = (k) => /^(ipc|pdp):/.test(k);
+  const isCacheKey = (k) => /^(ipc2?|pdp):/.test(k);
   const parse = (v) => { try { return v == null ? undefined : JSON.parse(v); } catch (_) { return undefined; } };
 
   const browser = {
@@ -135,11 +135,14 @@
     const counts = { ok: 0, no: 0, unknown: 0, pending: 0 };
 
     // ---------- caché ----------
+    // "ipc2:" desde 1.1.5 (antes "ipc:"): los resultados ahora pueden venir de la
+    // calculadora con la cuenta, así que no se reutilizan los de versiones anteriores.
+    const CACHE_PREFIX = "ipc2:";
     async function cacheGet(id) {
       if (memCache.has(id)) return memCache.get(id);
       if (!store) return null;
       try {
-        const key = "ipc:" + id;
+        const key = CACHE_PREFIX + id;
         const got = await store.get(key);
         const v = got?.[key];
         if (v && Date.now() - v.t < CACHE_TTL_MS) {
@@ -152,7 +155,89 @@
     function cacheSet(id, r) {
       memCache.set(id, r);
       if (!store || r.status === "unknown") return;
-      try { store.set({ ["ipc:" + id]: { t: Date.now(), r } }); } catch (_) {}
+      try { store.set({ [CACHE_PREFIX + id]: { t: Date.now(), r } }); } catch (_) {}
+    }
+
+    // ---------- cotización real con la cuenta del usuario ----------
+    // La calculadora de envíos de la ficha (www.mercadolibre.cl/gz/shipping-calculator)
+    // cotiza para la dirección elegida en la cuenta, con meli+, envíos gratis y la tarifa
+    // real de productos voluminosos. La API pública solo da un precio genérico: una cocina
+    // salía $30.000 en la API y $101.101 en el checkout (nov 2026). Se usa cuando hay
+    // sesión y la dirección de la cuenta está en Isla de Pascua; si no, se usa la API.
+    const CALC_URL = (id) =>
+      `https://www.mercadolibre.cl/gz/shipping-calculator?item_id=${id}&new_version=true&modal=true&informative=true&page_context=vpp&location=true&quantity=1`;
+
+    // Extrae el arreglo JSON "shipping_promises":[…] del HTML de la calculadora
+    function jsonArrayAfter(html, key) {
+      const i = html.indexOf(key);
+      if (i < 0) return null;
+      const start = html.indexOf("[", i + key.length);
+      if (start < 0 || start > i + key.length + 2) return null;
+      let depth = 0, inStr = false;
+      for (let k = start; k < html.length; k++) {
+        const c = html[k];
+        if (inStr) {
+          if (c === "\\") k++;
+          else if (c === '"') inStr = false;
+        } else if (c === '"') inStr = true;
+        else if (c === "[") depth++;
+        else if (c === "]" && --depth === 0) {
+          try { return JSON.parse(html.slice(start, k + 1)); } catch (_) { return null; }
+        }
+      }
+      return null;
+    }
+
+    // Resultado de la calculadora:
+    //   null                     → sin sesión: no se sabe la dirección (usar la API)
+    //   { away: true }           → la dirección de la cuenta no está en la isla (usar la API)
+    //   { unknown: true }        → respuesta que no se reconoce (usar la API para este producto)
+    //   { status: "ok"|"no", exact: true, … } → cotización real para la cuenta
+    function parseCalc(html) {
+      if (!html || typeof html !== "string") return null;
+      const dest = (html.match(/"destinationValue":"([^"]*)"/) || [])[1];
+      if (!dest) return null;
+      if (!dest.endsWith(CITY_ID)) return { away: true };
+      const list = jsonArrayAfter(html, '"shipping_promises":');
+      const opts = (Array.isArray(list) ? list : []).filter((p) => p && typeof p.cost === "number");
+      if (opts.length) {
+        // La más barata; a igual precio, a domicilio
+        const best = opts.reduce((a, b) =>
+          b.cost < a.cost || (b.cost === a.cost && b.type === "address" && a.type !== "address") ? b : a);
+        const edt = best.estimated_delivery_time || {};
+        return {
+          status: "ok",
+          exact: true,
+          cost: best.free_shipping ? 0 : best.cost,
+          type: best.type === "agency" ? "agency" : "address",
+          date: edt.date || null,
+          dateTo: (edt.offset && edt.offset.date) || null,
+        };
+      }
+      if (/no podemos enviar este producto/i.test(html)) return { status: "no", exact: true, reason: "No envía a Isla de Pascua" };
+      return { unknown: true };
+    }
+
+    // Cómo se consigue el HTML con la sesión: desde la parte en segundo plano (Chrome,
+    // Edge), directo si ya estamos en www, o con un marco invisible de www (Safari, iPhone).
+    let calcOff = false; // sin sesión: no insistir en esta página
+    async function realQuote(id) {
+      if (calcOff) return null;
+      let q = null;
+      try {
+        if (location.hostname === "www.mercadolibre.cl") {
+          const res = await fetch(CALC_URL(id), { credentials: "include" });
+          q = res.ok ? parseCalc(await res.text()) : null;
+        } else {
+          const resp = await ext.runtime.sendMessage({ type: "ipc-calc", id }).catch(() => null);
+          q = parseCalc(resp && resp.html);
+          // Sin sesión en segundo plano (Safari no la envía): probar con el marco
+          if (!q) q = await proxyCalc(id);
+        }
+      } catch (_) {}
+      // Sin sesión o con una dirección fuera de la isla: no seguir preguntando en esta página
+      if (!q || q.away) calcOff = true;
+      return q;
     }
 
     // ---------- consulta ----------
@@ -160,6 +245,11 @@
       const cached = await cacheGet(id);
       if (cached) return cached;
       let r;
+      const q = await realQuote(id);
+      if (q && (q.status === "ok" || q.status === "no")) {
+        cacheSet(id, q);
+        return q;
+      }
       try {
         let res;
         // Reintenta errores temporales (424, 429, 5xx) hasta 2 veces
@@ -410,6 +500,8 @@
     }
 
     function costText(r, freeForUser, price, tagged) {
+      // Cotización real de la calculadora: ya incluye meli+ y lo que aplique a la cuenta
+      if (r.exact) return r.cost === 0 ? "envío gratis con tu cuenta" : `${fmtCLP(r.cost)} con tu cuenta`;
       if (freeForUser) return "envío gratis con tu cuenta";
       if (r.cost === 0) return "envío gratis";
       if (r.cost == null) return "";
@@ -489,7 +581,7 @@
     // "Envío gratis" o el plan meli+ podría cubrirlo (precio desde el umbral y envío
     // sobre el tope). Suelen ser pocos por página.
     function needsPdpCheck(card, r) {
-      if (r.status !== "ok" || !(r.cost > 0) || !card.dataset.ipcId || card.dataset.ipcId === "none") return false;
+      if (r.status !== "ok" || r.exact || !(r.cost > 0) || !card.dataset.ipcId || card.dataset.ipcId === "none") return false;
       if (FREE_RE.test(textWithoutOurs(card))) return true;
       const p = PLANS[effectivePlan()];
       return !!(p && p.threshold && card._ipcPrice != null && card._ipcPrice >= p.threshold && r.cost > p.freeCap);
@@ -809,6 +901,63 @@
       tick();
     }
 
+    // Calculadora de envíos a través de un único marco invisible de www (Safari, iPhone y
+    // respaldo en Chrome/Edge). El marco pide la calculadora con la sesión y devuelve
+    // solo el resultado ya leído (nunca el HTML, que trae la dirección del usuario).
+    let calcFrame = null; // Promise<Window|null>
+    const calcWaiting = new Map(); // id -> resolve
+    function calcFrameReady() {
+      if (calcFrame) return calcFrame;
+      calcFrame = new Promise((resolve) => {
+        if (!document.body) return resolve(null);
+        const f = document.createElement("iframe");
+        f.setAttribute("aria-hidden", "true");
+        f.tabIndex = -1;
+        f.style.cssText =
+          "position:fixed;left:-10000px;top:0;width:10px;height:10px;opacity:0;pointer-events:none;border:0";
+        const timer = setTimeout(() => resolve(null), PROBE_TIMEOUT_MS);
+        window.addEventListener("message", (ev) => {
+          if (ev.origin !== "https://www.mercadolibre.cl" || ev.source !== f.contentWindow) return;
+          const d = ev.data;
+          if (!d) return;
+          if (d.ipcCalcReady === true) { clearTimeout(timer); resolve(f.contentWindow); }
+          if (d.ipcCalcRes === true && calcWaiting.has(d.id)) {
+            calcWaiting.get(d.id)(d.q || null);
+            calcWaiting.delete(d.id);
+          }
+        });
+        f.src = "https://www.mercadolibre.cl/ayuda#ipc-calc";
+        document.body.appendChild(f);
+      });
+      return calcFrame;
+    }
+    async function proxyCalc(id) {
+      const win = await calcFrameReady();
+      if (!win) return null;
+      return new Promise((resolve) => {
+        calcWaiting.set(id, resolve);
+        win.postMessage({ ipcCalcReq: true, id }, "https://www.mercadolibre.cl");
+        setTimeout(() => { if (calcWaiting.has(id)) { calcWaiting.delete(id); resolve(null); } }, PROBE_TIMEOUT_MS);
+      });
+    }
+    // Dentro del marco de www: responder pedidos de páginas de mercadolibre.cl
+    function runCalcProxy() {
+      window.addEventListener("message", async (ev) => {
+        let host = "";
+        try { host = new URL(ev.origin).hostname; } catch (_) {}
+        if (ev.source !== window.parent || !/(^|\.)mercadolibre\.cl$/.test(host)) return;
+        const d = ev.data;
+        if (!d || d.ipcCalcReq !== true || !/^MLC\d{6,}$/.test(d.id || "")) return;
+        let q = null;
+        try {
+          const res = await fetch(CALC_URL(d.id), { credentials: "include" });
+          q = res.ok ? parseCalc(await res.text()) : null;
+        } catch (_) {}
+        window.parent.postMessage({ ipcCalcRes: true, id: d.id, q }, ev.origin);
+      });
+      window.parent.postMessage({ ipcCalcReady: true }, "*");
+    }
+
     // Dentro del marco: leer la frase de envío de la ficha y responder
     function runProbe() {
       const id = (location.hash.match(/ipc-probe=(MLC\d+)/i) || [])[1];
@@ -832,6 +981,7 @@
       // En marcos solo actúa si es nuestro marco de revisión; en otros (avisos, etc.) nada
       if (/#ipc-probe=/i.test(location.href)) runProbe();
       else if (/#ipc-meli\b/i.test(location.href)) runMeliProbe();
+      else if (/#ipc-calc\b/i.test(location.href) && location.hostname === "www.mercadolibre.cl") runCalcProxy();
     } else {
       init();
     }
